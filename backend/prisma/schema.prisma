@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SiItemType {
+  bill
+  subscription
+  insurance
+  loan
+  service
+}
+
+enum SiPaymentFrequency {
+  daily
+  weekly
+  monthly
+  bimonthly
+  quarterly
+  quadrimestral
+  semiannual
+  annually
+}
+
+model SiItem {
+  id               String             @id @default(cuid())
+  type             SiItemType
+  subType          String?
+  paymentFrequency SiPaymentFrequency
+  amount           Float              @db.Real
+  notifyCancel     Boolean
+  notifyRenew      Boolean
+  notifyPay        Boolean
+  notifyCancelDate DateTime?
+  notifyRenewDate  DateTime?
+  notifyPayDate    DateTime?
+
+  @@map("SI_Items")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
