@@ -30,14 +30,6 @@ export type SiItemRow = {
   notifyPayDate: string | null;
 };
 
-function formatMoney(n: number) {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(n);
-}
-
 type FormState = {
   type: "bill" | "subscription";
   subType: string;
@@ -51,37 +43,250 @@ type FormState = {
   notifyPayDate: string;
 };
 
-const initialForm = (): FormState => ({
-  type: "bill",
-  subType: "",
-  paymentFrequency: "monthly",
-  amount: "",
-  notifyCancel: false,
-  notifyRenew: false,
-  notifyPay: false,
-  notifyCancelDate: "",
-  notifyRenewDate: "",
-  notifyPayDate: "",
-});
+type ModalMode = { kind: "create" } | { kind: "edit"; id: string };
+
+function formatMoney(n: number) {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+function initialForm(): FormState {
+  return {
+    type: "bill",
+    subType: "",
+    paymentFrequency: "monthly",
+    amount: "",
+    notifyCancel: false,
+    notifyRenew: false,
+    notifyPay: false,
+    notifyCancelDate: "",
+    notifyRenewDate: "",
+    notifyPayDate: "",
+  };
+}
+
+function rowToForm(row: SiItemRow): FormState {
+  return {
+    type: row.type as "bill" | "subscription",
+    subType: row.subType ?? "",
+    paymentFrequency: row.paymentFrequency as FormState["paymentFrequency"],
+    amount: String(row.amount),
+    notifyCancel: row.notifyCancel,
+    notifyRenew: row.notifyRenew,
+    notifyPay: row.notifyPay,
+    notifyCancelDate: row.notifyCancelDate
+      ? row.notifyCancelDate.slice(0, 16)
+      : "",
+    notifyRenewDate: row.notifyRenewDate
+      ? row.notifyRenewDate.slice(0, 16)
+      : "",
+    notifyPayDate: row.notifyPayDate ? row.notifyPayDate.slice(0, 16) : "",
+  };
+}
+
+// ── Icons ────────────────────────────────────────────────────────────────────
+
+function IconHome({ cls }: { cls?: string }) {
+  return (
+    <svg
+      className={cls}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+      <polyline points="9,22 9,12 15,12 15,22" />
+    </svg>
+  );
+}
+
+function IconPencil({ cls }: { cls?: string }) {
+  return (
+    <svg
+      className={cls}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function IconTrash({ cls }: { cls?: string }) {
+  return (
+    <svg
+      className={cls}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="3,6 5,6 21,6" />
+      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+    </svg>
+  );
+}
+
+function IconPlus({ cls }: { cls?: string }) {
+  return (
+    <svg
+      className={cls}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────────────
+
+function Sidebar() {
+  return (
+    <aside className="w-56 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-screen">
+      {/* Brand */}
+      <div className="px-5 pt-6 pb-5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center shadow-sm">
+            <span className="text-white text-sm font-bold leading-none">$</span>
+          </div>
+          <span className="text-[15px] font-semibold text-gray-900 tracking-tight">
+            SpendIT
+          </span>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 space-y-0.5">
+        <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+          Menu
+        </p>
+        <a
+          href="#"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium bg-blue-50 text-blue-600"
+        >
+          <IconHome cls="w-4 h-4 text-blue-500" />
+          Home
+        </a>
+      </nav>
+
+      {/* Footer */}
+      <div className="px-5 py-4 border-t border-gray-100">
+        <p className="text-[11px] text-gray-400">SpendIT v1.0</p>
+      </div>
+    </aside>
+  );
+}
+
+// ── Badges ───────────────────────────────────────────────────────────────────
+
+function TypeBadge({ type }: { type: string }) {
+  const styles: Record<string, string> = {
+    bill: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200",
+    subscription: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200",
+  };
+  const cls =
+    styles[type] ?? "bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-200";
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${cls}`}
+    >
+      {type}
+    </span>
+  );
+}
+
+function FreqBadge({ freq }: { freq: string }) {
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-600 capitalize">
+      {freq}
+    </span>
+  );
+}
+
+function NotifyPills({
+  cancel,
+  renew,
+  pay,
+}: {
+  cancel: boolean;
+  renew: boolean;
+  pay: boolean;
+}) {
+  if (!cancel && !renew && !pay)
+    return <span className="text-gray-300 text-xs select-none">—</span>;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {cancel && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600">
+          cancel
+        </span>
+      )}
+      {renew && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700">
+          renew
+        </span>
+      )}
+      {pay && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-50 text-purple-700">
+          pay
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Form field helpers ────────────────────────────────────────────────────────
+
+const inputCls =
+  "w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 transition";
+
+const labelCls = "block text-xs font-medium text-gray-600 mb-1.5";
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export function ItemsApp() {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const deleteDialogRef = useRef<HTMLDialogElement>(null);
+
   const [items, setItems] = useState<SiItemRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(initialForm);
+
+  const [form, setForm] = useState<FormState>(initialForm());
+  const [modalMode, setModalMode] = useState<ModalMode>({ kind: "create" });
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<SiItemRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // ── Data loading ────────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
     setListError(null);
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/items`, { credentials: "include" });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || res.statusText);
-      }
+      if (!res.ok) throw new Error((await res.text()) || res.statusText);
       const data = (await res.json()) as SiItemRow[];
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -96,8 +301,18 @@ export function ItemsApp() {
     void load();
   }, [load]);
 
-  function openDialog() {
+  // ── Dialog helpers ──────────────────────────────────────────────────────────
+
+  function openCreate() {
+    setModalMode({ kind: "create" });
     setForm(initialForm());
+    setSubmitError(null);
+    dialogRef.current?.showModal();
+  }
+
+  function openEdit(row: SiItemRow) {
+    setModalMode({ kind: "edit", id: row.id });
+    setForm(rowToForm(row));
     setSubmitError(null);
     dialogRef.current?.showModal();
   }
@@ -105,6 +320,18 @@ export function ItemsApp() {
   function closeDialog() {
     dialogRef.current?.close();
   }
+
+  function openDeleteConfirm(row: SiItemRow) {
+    setDeleteTarget(row);
+    deleteDialogRef.current?.showModal();
+  }
+
+  function closeDeleteDialog() {
+    deleteDialogRef.current?.close();
+    setDeleteTarget(null);
+  }
+
+  // ── Submit (create / update) ────────────────────────────────────────────────
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -130,8 +357,12 @@ export function ItemsApp() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/items`, {
-        method: "POST",
+      const isEdit = modalMode.kind === "edit";
+      const url = isEdit
+        ? `${API_BASE}/items/${modalMode.id}`
+        : `${API_BASE}/items`;
+      const res = await fetch(url, {
+        method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(payload),
@@ -139,140 +370,230 @@ export function ItemsApp() {
       if (!res.ok) {
         const text = await res.text();
         let msg = res.statusText;
-        if (text) {
-          try {
-            const body = JSON.parse(text) as {
-              message?: string | string[];
-            };
-            if (typeof body.message === "string") {
-              msg = body.message;
-            } else if (Array.isArray(body.message)) {
-              msg = body.message.join(", ");
-            } else {
-              msg = text;
-            }
-          } catch {
-            msg = text;
-          }
+        try {
+          const body = JSON.parse(text) as { message?: string | string[] };
+          msg =
+            typeof body.message === "string"
+              ? body.message
+              : Array.isArray(body.message)
+                ? body.message.join(", ")
+                : text;
+        } catch {
+          msg = text || msg;
         }
         throw new Error(msg);
       }
       closeDialog();
       await load();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Create failed");
+      setSubmitError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSubmitting(false);
     }
   }
 
+  // ── Delete ──────────────────────────────────────────────────────────────────
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${API_BASE}/items/${deleteTarget.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error((await res.text()) || res.statusText);
+      closeDeleteDialog();
+      await load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
   return (
-    <main className="mx-auto min-h-screen max-w-5xl p-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Items</h1>
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-            All rows from <code className="text-xs">SI_Items</code>. Add a bill
-            or subscription below.
-          </p>
+    <div className="flex h-screen bg-[#F5F5F7] overflow-hidden">
+      <Sidebar />
+
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Header */}
+        <header className="px-8 pt-8 pb-5 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+              Items
+            </h1>
+            <p className="mt-0.5 text-sm text-gray-500">
+              Manage your bills and subscriptions
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition-all"
+          >
+            <IconPlus cls="w-4 h-4" />
+            New Item
+          </button>
+        </header>
+
+        {/* Table card */}
+        <div className="flex-1 px-8 pb-8 overflow-auto">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/70 overflow-hidden min-h-[200px]">
+            {loading ? (
+              <div className="flex items-center justify-center h-48">
+                <span className="text-sm text-gray-400">Loading…</span>
+              </div>
+            ) : listError ? (
+              <div className="flex flex-col items-center justify-center h-48 gap-3">
+                <p className="text-sm text-red-500">{listError}</p>
+                <button
+                  type="button"
+                  onClick={() => void load()}
+                  className="text-sm font-medium text-blue-500 hover:text-blue-600 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-48 gap-1">
+                <p className="text-sm font-medium text-gray-600">
+                  No items yet
+                </p>
+                <p className="text-xs text-gray-400">
+                  Create a bill or subscription to get started
+                </p>
+                <button
+                  type="button"
+                  onClick={openCreate}
+                  className="mt-3 text-sm font-medium text-blue-500 hover:text-blue-600 transition-colors"
+                >
+                  Create your first item →
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[600px] text-left">
+                    <thead>
+                      <tr className="border-b border-gray-100 bg-gray-50/80">
+                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                          Subtype
+                        </th>
+                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                          Frequency
+                        </th>
+                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-right">
+                          Amount
+                        </th>
+                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                          Notifications
+                        </th>
+                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-right">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {items.map((row) => (
+                        <tr
+                          key={row.id}
+                          className="hover:bg-blue-50/30 transition-colors group"
+                        >
+                          <td className="px-5 py-3.5">
+                            <TypeBadge type={row.type} />
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span className="text-sm text-gray-800 font-medium">
+                              {row.subType ?? (
+                                <span className="text-gray-300 font-normal">
+                                  —
+                                </span>
+                              )}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <FreqBadge freq={row.paymentFrequency} />
+                          </td>
+                          <td className="px-5 py-3.5 text-right">
+                            <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                              {formatMoney(row.amount)}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <NotifyPills
+                              cancel={row.notifyCancel}
+                              renew={row.notifyRenew}
+                              pay={row.notifyPay}
+                            />
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => openEdit(row)}
+                                title="Edit"
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                              >
+                                <IconPencil cls="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openDeleteConfirm(row)}
+                                title="Delete"
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              >
+                                <IconTrash cls="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-5 py-3 border-t border-gray-100">
+                  <span className="text-xs text-gray-400">
+                    {items.length} {items.length === 1 ? "item" : "items"} total
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={openDialog}
-          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white dark:focus-visible:outline-neutral-100"
-        >
-          New bill or subscription
-        </button>
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
-        {loading ? (
-          <p className="p-6 text-sm text-neutral-600 dark:text-neutral-400">
-            Loading…
-          </p>
-        ) : listError ? (
-          <div className="p-6">
-            <p className="text-sm text-red-600 dark:text-red-400">{listError}</p>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="mt-3 text-sm font-medium text-neutral-900 underline dark:text-neutral-100"
-            >
-              Retry
-            </button>
-          </div>
-        ) : items.length === 0 ? (
-          <p className="p-6 text-sm text-neutral-600 dark:text-neutral-400">
-            No items yet. Create a bill or subscription to get started.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="border-b border-neutral-200 bg-neutral-50 text-xs font-medium uppercase tracking-wide text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-400">
-                <tr>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Subtype</th>
-                  <th className="px-4 py-3">Frequency</th>
-                  <th className="px-4 py-3 text-right">Amount</th>
-                  <th className="px-4 py-3">Notify</th>
-                  <th className="px-4 py-3">ID</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                {items.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="bg-white dark:bg-neutral-950/30"
-                  >
-                    <td className="px-4 py-3 capitalize">{row.type}</td>
-                    <td className="px-4 py-3 text-neutral-600 dark:text-neutral-400">
-                      {row.subType ?? "—"}
-                    </td>
-                    <td className="px-4 py-3">{row.paymentFrequency}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {formatMoney(row.amount)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-neutral-600 dark:text-neutral-400">
-                      {[
-                        row.notifyCancel && "cancel",
-                        row.notifyRenew && "renew",
-                        row.notifyPay && "pay",
-                      ]
-                        .filter(Boolean)
-                        .join(", ") || "—"}
-                    </td>
-                    <td
-                      className="max-w-[8rem] truncate px-4 py-3 font-mono text-xs text-neutral-500"
-                      title={row.id}
-                    >
-                      {row.id}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
+      {/* ── Create / Edit dialog ─────────────────────────────────────────────── */}
       <dialog
         ref={dialogRef}
-        className="w-full max-w-md rounded-xl border border-neutral-200 bg-[var(--background)] p-0 text-[var(--foreground)] shadow-xl backdrop:bg-black/50 dark:border-neutral-800"
+        className="w-full max-w-md rounded-2xl border border-gray-200/60 bg-white p-0 shadow-2xl backdrop:bg-black/40"
         onClose={() => setSubmitError(null)}
       >
         <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col">
-          <div className="border-b border-neutral-200 px-6 py-4 dark:border-neutral-800">
-            <h2 className="text-lg font-semibold">New item</h2>
-            <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
-              Creates a row in SI_Items (bill or subscription).
+          {/* Dialog header */}
+          <div className="border-b border-gray-100 px-6 py-5">
+            <h2 className="text-[17px] font-semibold text-gray-900">
+              {modalMode.kind === "edit" ? "Edit item" : "New item"}
+            </h2>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {modalMode.kind === "edit"
+                ? "Update this bill or subscription."
+                : "Add a new bill or subscription."}
             </p>
           </div>
 
-          <div className="max-h-[min(70vh,32rem)] space-y-4 overflow-y-auto px-6 py-4">
-            <label className="block text-sm font-medium">
-              Type
+          {/* Dialog body */}
+          <div className="max-h-[min(70vh,32rem)] space-y-4 overflow-y-auto px-6 py-5">
+            {/* Type */}
+            <div>
+              <label className={labelCls}>Type</label>
               <select
-                className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
+                className={inputCls}
                 value={form.type}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -284,162 +605,194 @@ export function ItemsApp() {
                 <option value="bill">Bill</option>
                 <option value="subscription">Subscription</option>
               </select>
-            </label>
+            </div>
 
-            <label className="block text-sm font-medium">
-              Subtype <span className="font-normal text-neutral-500">(optional)</span>
+            {/* Subtype */}
+            <div>
+              <label className={labelCls}>
+                Subtype{" "}
+                <span className="font-normal text-gray-400">(optional)</span>
+              </label>
               <input
                 type="text"
-                className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
+                className={inputCls}
                 value={form.subType}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, subType: e.target.value }))
                 }
-                placeholder="e.g. Utilities"
+                placeholder="e.g. Netflix, Utilities"
               />
-            </label>
+            </div>
 
-            <label className="block text-sm font-medium">
-              Payment frequency
+            {/* Frequency */}
+            <div>
+              <label className={labelCls}>Payment frequency</label>
               <select
-                className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
+                className={inputCls}
                 value={form.paymentFrequency}
                 onChange={(e) =>
                   setForm((f) => ({
                     ...f,
-                    paymentFrequency: e.target.value as FormState["paymentFrequency"],
+                    paymentFrequency:
+                      e.target.value as FormState["paymentFrequency"],
                   }))
                 }
               >
                 {PAYMENT_FREQUENCIES.map((freq) => (
                   <option key={freq} value={freq}>
-                    {freq}
+                    {freq.charAt(0).toUpperCase() + freq.slice(1)}
                   </option>
                 ))}
               </select>
-            </label>
-
-            <label className="block text-sm font-medium">
-              Amount (USD)
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                required
-                className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm tabular-nums dark:border-neutral-700"
-                value={form.amount}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, amount: e.target.value }))
-                }
-                placeholder="0.00"
-              />
-            </label>
-
-            <fieldset className="space-y-2">
-              <legend className="text-sm font-medium">Notifications</legend>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.notifyCancel}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, notifyCancel: e.target.checked }))
-                  }
-                />
-                Notify cancel
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.notifyRenew}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, notifyRenew: e.target.checked }))
-                  }
-                />
-                Notify renew
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.notifyPay}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, notifyPay: e.target.checked }))
-                  }
-                />
-                Notify pay
-              </label>
-            </fieldset>
-
-            <div className="space-y-3 border-t border-neutral-200 pt-3 dark:border-neutral-800">
-              <p className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-                Optional reminder dates
-              </p>
-              <label className="block text-sm font-medium">
-                Cancel notify
-                <input
-                  type="datetime-local"
-                  className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
-                  value={form.notifyCancelDate}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      notifyCancelDate: e.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label className="block text-sm font-medium">
-                Renew notify
-                <input
-                  type="datetime-local"
-                  className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
-                  value={form.notifyRenewDate}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      notifyRenewDate: e.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label className="block text-sm font-medium">
-                Pay notify
-                <input
-                  type="datetime-local"
-                  className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
-                  value={form.notifyPayDate}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, notifyPayDate: e.target.value }))
-                  }
-                />
-              </label>
             </div>
 
-            {submitError ? (
-              <p className="text-sm text-red-600 dark:text-red-400">
+            {/* Amount */}
+            <div>
+              <label className={labelCls}>Amount (USD)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none">
+                  $
+                </span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  required
+                  className={`${inputCls} pl-7`}
+                  value={form.amount}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, amount: e.target.value }))
+                  }
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            {/* Notifications */}
+            <div>
+              <p className={labelCls}>Notifications</p>
+              <div className="space-y-2.5">
+                {(
+                  [
+                    { key: "notifyCancel", label: "Notify on cancel" },
+                    { key: "notifyRenew", label: "Notify on renewal" },
+                    { key: "notifyPay", label: "Notify on payment" },
+                  ] as const
+                ).map(({ key, label }) => (
+                  <label
+                    key={key}
+                    className="flex items-center gap-2.5 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                      checked={form[key]}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, [key]: e.target.checked }))
+                      }
+                    />
+                    <span className="text-sm text-gray-700">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Optional reminder dates */}
+            <div className="border-t border-gray-100 pt-4 space-y-3">
+              <p className="text-xs font-medium text-gray-400">
+                Optional reminder dates
+              </p>
+              {(
+                [
+                  { key: "notifyCancelDate", label: "Cancel reminder" },
+                  { key: "notifyRenewDate", label: "Renewal reminder" },
+                  { key: "notifyPayDate", label: "Payment reminder" },
+                ] as const
+              ).map(({ key, label }) => (
+                <div key={key}>
+                  <label className={labelCls}>{label}</label>
+                  <input
+                    type="datetime-local"
+                    className={inputCls}
+                    value={form[key]}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, [key]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+
+            {submitError && (
+              <p className="text-sm text-red-500 bg-red-50 rounded-xl px-3 py-2.5">
                 {submitError}
               </p>
-            ) : null}
+            )}
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-neutral-200 px-6 py-4 dark:border-neutral-800">
+          {/* Dialog footer */}
+          <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
             <button
               type="button"
               onClick={closeDialog}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
+              className="px-4 py-2 text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-sm transition-colors disabled:opacity-50"
             >
-              {submitting ? "Saving…" : "Create"}
+              {submitting
+                ? "Saving…"
+                : modalMode.kind === "edit"
+                  ? "Save changes"
+                  : "Create"}
             </button>
           </div>
         </form>
       </dialog>
-    </main>
+
+      {/* ── Delete confirmation dialog ──────────────────────────────────────── */}
+      <dialog
+        ref={deleteDialogRef}
+        className="w-full max-w-sm rounded-2xl border border-gray-200/60 bg-white p-0 shadow-2xl backdrop:bg-black/40"
+        onClose={() => setDeleteTarget(null)}
+      >
+        <div className="p-6">
+          <h3 className="text-[17px] font-semibold text-gray-900">
+            Delete item?
+          </h3>
+          <p className="mt-1.5 text-sm text-gray-500">
+            {deleteTarget
+              ? `This will permanently delete ${
+                  deleteTarget.subType
+                    ? `"${deleteTarget.subType}"`
+                    : `this ${deleteTarget.type}`
+                }. This action cannot be undone.`
+              : "This action cannot be undone."}
+          </p>
+          <div className="flex justify-end gap-2 mt-6">
+            <button
+              type="button"
+              onClick={closeDeleteDialog}
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDelete()}
+              disabled={deleting}
+              className="px-4 py-2 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-sm transition-colors disabled:opacity-50"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </button>
+          </div>
+        </div>
+      </dialog>
+    </div>
   );
 }
