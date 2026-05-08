@@ -1,9 +1,7 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+  import.meta.env.VITE_API_URL ?? "http://localhost:3001/api";
 
 const PAYMENT_FREQUENCIES = [
   "daily",
