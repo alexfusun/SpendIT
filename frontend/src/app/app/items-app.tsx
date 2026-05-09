@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAuth } from "../../AuthContext";
 
 const API_BASE =
   import.meta.env.VITE_API_URL ?? "http://localhost:3001/api";
@@ -157,7 +158,27 @@ function IconPlus({ cls }: { cls?: string }) {
 
 // ── Sidebar ──────────────────────────────────────────────────────────────────
 
+function IconSignOut({ cls }: { cls?: string }) {
+  return (
+    <svg
+      className={cls}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+      <polyline points="16,17 21,12 16,7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
 function Sidebar() {
+  const { user, signOut } = useAuth();
+
   return (
     <aside className="w-56 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-screen">
       {/* Brand */}
@@ -186,9 +207,36 @@ function Sidebar() {
         </a>
       </nav>
 
-      {/* Footer */}
-      <div className="px-5 py-4 border-t border-gray-100">
-        <p className="text-[11px] text-gray-400">SpendIT v1.0</p>
+      {/* User + sign-out */}
+      <div className="px-4 py-4 border-t border-gray-100 space-y-3">
+        {user && (
+          <div className="flex items-center gap-2.5 min-w-0">
+            {user.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt=""
+                className="w-7 h-7 rounded-full flex-shrink-0"
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-medium text-gray-600">
+                  {(user.displayName ?? user.email ?? "?")[0].toUpperCase()}
+                </span>
+              </div>
+            )}
+            <span className="text-[12px] text-gray-600 truncate">
+              {user.displayName ?? user.email}
+            </span>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+        >
+          <IconSignOut cls="w-4 h-4" />
+          Sign out
+        </button>
       </div>
     </aside>
   );
@@ -234,17 +282,17 @@ function NotifyPills({
   return (
     <div className="flex flex-wrap gap-1">
       {cancel && (
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-red-50 text-red-600">
           cancel
         </span>
       )}
       {renew && (
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-emerald-50 text-emerald-700">
           renew
         </span>
       )}
       {pay && (
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-50 text-purple-700">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-purple-50 text-purple-700">
           pay
         </span>
       )}
@@ -259,9 +307,43 @@ const inputCls =
 
 const labelCls = "block text-xs font-medium text-gray-600 mb-1.5";
 
+function DateTimeInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  if (!value) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          const d = new Date();
+          d.setHours(12, 0, 0, 0);
+          onChange(d.toISOString().slice(0, 16));
+        }}
+        className="w-full flex items-center px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-400 hover:bg-gray-50 transition-colors"
+      >
+        Set date &amp; time
+      </button>
+    );
+  }
+  return (
+    <input
+      type="datetime-local"
+      step="300"
+      className={inputCls}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function ItemsApp() {
+  const { getToken } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const deleteDialogRef = useRef<HTMLDialogElement>(null);
 
@@ -283,7 +365,10 @@ export function ItemsApp() {
     setListError(null);
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/items`, { credentials: "include" });
+      const token = await getToken();
+      const res = await fetch(`${API_BASE}/items`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error((await res.text()) || res.statusText);
       const data = (await res.json()) as SiItemRow[];
       setItems(Array.isArray(data) ? data : []);
@@ -293,7 +378,7 @@ export function ItemsApp() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getToken]);
 
   useEffect(() => {
     void load();
@@ -359,10 +444,13 @@ export function ItemsApp() {
       const url = isEdit
         ? `${API_BASE}/items/${modalMode.id}`
         : `${API_BASE}/items`;
+      const token = await getToken();
       const res = await fetch(url, {
         method: isEdit ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
@@ -396,9 +484,10 @@ export function ItemsApp() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
+      const token = await getToken();
       const res = await fetch(`${API_BASE}/items/${deleteTarget.id}`, {
         method: "DELETE",
-        credentials: "include",
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error((await res.text()) || res.statusText);
       closeDeleteDialog();
@@ -670,56 +759,74 @@ export function ItemsApp() {
             {/* Notifications */}
             <div>
               <p className={labelCls}>Notifications</p>
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {(
                   [
-                    { key: "notifyCancel", label: "Notify on cancel" },
-                    { key: "notifyRenew", label: "Notify on renewal" },
-                    { key: "notifyPay", label: "Notify on payment" },
-                  ] as const
-                ).map(({ key, label }) => (
-                  <label
-                    key={key}
-                    className="flex items-center gap-2.5 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
-                      checked={form[key]}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, [key]: e.target.checked }))
+                    {
+                      notifyKey: "notifyCancel" as const,
+                      dateKey: "notifyCancelDate" as const,
+                      label: "Cancel reminder",
+                      buttonLabel: "Add cancel reminder",
+                    },
+                    {
+                      notifyKey: "notifyRenew" as const,
+                      dateKey: "notifyRenewDate" as const,
+                      label: "Renewal notification",
+                      buttonLabel: "Add renewal notification",
+                    },
+                    {
+                      notifyKey: "notifyPay" as const,
+                      dateKey: "notifyPayDate" as const,
+                      label: "Payment notification",
+                      buttonLabel: "Add payment notification",
+                    },
+                  ]
+                ).map(({ notifyKey, dateKey, label, buttonLabel }) =>
+                  form[notifyKey] ? (
+                    <div
+                      key={notifyKey}
+                      className="rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-3 space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-800">
+                          {label}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm((f) => ({
+                              ...f,
+                              [notifyKey]: false,
+                              [dateKey]: "",
+                            }))
+                          }
+                          className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <DateTimeInput
+                        value={form[dateKey]}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, [dateKey]: v }))
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      key={notifyKey}
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({ ...f, [notifyKey]: true }))
                       }
-                    />
-                    <span className="text-sm text-gray-700">{label}</span>
-                  </label>
-                ))}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-gray-300 text-sm text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 transition-all"
+                    >
+                      <IconPlus cls="w-3.5 h-3.5 flex-shrink-0" />
+                      {buttonLabel}
+                    </button>
+                  ),
+                )}
               </div>
-            </div>
-
-            {/* Optional reminder dates */}
-            <div className="border-t border-gray-100 pt-4 space-y-3">
-              <p className="text-xs font-medium text-gray-400">
-                Optional reminder dates
-              </p>
-              {(
-                [
-                  { key: "notifyCancelDate", label: "Cancel reminder" },
-                  { key: "notifyRenewDate", label: "Renewal reminder" },
-                  { key: "notifyPayDate", label: "Payment reminder" },
-                ] as const
-              ).map(({ key, label }) => (
-                <div key={key}>
-                  <label className={labelCls}>{label}</label>
-                  <input
-                    type="datetime-local"
-                    className={inputCls}
-                    value={form[key]}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, [key]: e.target.value }))
-                    }
-                  />
-                </div>
-              ))}
             </div>
 
             {submitError && (

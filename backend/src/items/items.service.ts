@@ -21,12 +21,8 @@ const CREATABLE_TYPES = new Set<SiItemType>([
 function parseOptionalDate(
   value: string | null | undefined,
 ): Date | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (value === null || value === "") {
-    return null;
-  }
+  if (value === undefined) return undefined;
+  if (value === null || value === "") return null;
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) {
     throw new BadRequestException(`Invalid date: ${value}`);
@@ -38,13 +34,14 @@ function parseOptionalDate(
 export class ItemsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
+  findAll(userId: string) {
     return this.prisma.siItem.findMany({
+      where: { userId },
       orderBy: [{ type: "asc" }, { id: "asc" }],
     });
   }
 
-  async create(dto: CreateItemDto) {
+  async create(userId: string, dto: CreateItemDto) {
     if (!SI_ITEM_TYPES.has(dto.type)) {
       throw new BadRequestException(`Invalid type: ${dto.type}`);
     }
@@ -64,31 +61,28 @@ export class ItemsService {
       throw new BadRequestException("amount must be a non-negative number");
     }
 
-    const notifyCancelDate = parseOptionalDate(dto.notifyCancelDate);
-    const notifyRenewDate = parseOptionalDate(dto.notifyRenewDate);
-    const notifyPayDate = parseOptionalDate(dto.notifyPayDate);
-
     return this.prisma.siItem.create({
       data: {
+        userId,
         type,
         subType:
-          dto.subType === undefined || dto.subType === ""
-            ? null
-            : dto.subType,
+          dto.subType === undefined || dto.subType === "" ? null : dto.subType,
         paymentFrequency: dto.paymentFrequency as SiPaymentFrequency,
         amount,
         notifyCancel: Boolean(dto.notifyCancel),
         notifyRenew: Boolean(dto.notifyRenew),
         notifyPay: Boolean(dto.notifyPay),
-        notifyCancelDate: notifyCancelDate ?? null,
-        notifyRenewDate: notifyRenewDate ?? null,
-        notifyPayDate: notifyPayDate ?? null,
+        notifyCancelDate: parseOptionalDate(dto.notifyCancelDate) ?? null,
+        notifyRenewDate: parseOptionalDate(dto.notifyRenewDate) ?? null,
+        notifyPayDate: parseOptionalDate(dto.notifyPayDate) ?? null,
       },
     });
   }
 
-  async update(id: string, dto: UpdateItemDto) {
-    const existing = await this.prisma.siItem.findUnique({ where: { id } });
+  async update(userId: string, id: string, dto: UpdateItemDto) {
+    const existing = await this.prisma.siItem.findFirst({
+      where: { id, userId },
+    });
     if (!existing) throw new NotFoundException(`Item ${id} not found`);
 
     const data: Record<string, unknown> = {};
@@ -116,9 +110,7 @@ export class ItemsService {
       }
       data.amount = amount;
     }
-    if ("subType" in dto) {
-      data.subType = dto.subType === "" ? null : dto.subType;
-    }
+    if ("subType" in dto) data.subType = dto.subType === "" ? null : dto.subType;
     if (dto.notifyCancel !== undefined) data.notifyCancel = Boolean(dto.notifyCancel);
     if (dto.notifyRenew !== undefined) data.notifyRenew = Boolean(dto.notifyRenew);
     if (dto.notifyPay !== undefined) data.notifyPay = Boolean(dto.notifyPay);
@@ -132,8 +124,10 @@ export class ItemsService {
     return this.prisma.siItem.update({ where: { id }, data });
   }
 
-  async remove(id: string) {
-    const existing = await this.prisma.siItem.findUnique({ where: { id } });
+  async remove(userId: string, id: string) {
+    const existing = await this.prisma.siItem.findFirst({
+      where: { id, userId },
+    });
     if (!existing) throw new NotFoundException(`Item ${id} not found`);
     return this.prisma.siItem.delete({ where: { id } });
   }

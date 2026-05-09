@@ -28,6 +28,7 @@ enum SiPaymentFrequency {
 
 model SiItem {
   id               String             @id @default(cuid())
+  userId           String             @default("")
   type             SiItemType
   subType          String?
   paymentFrequency SiPaymentFrequency
@@ -39,13 +40,15 @@ model SiItem {
   notifyRenewDate  DateTime?
   notifyPayDate    DateTime?
 
+  @@index([userId])
   @@map("SI_Items")
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id               // Firebase UID
+  email       String   @unique
+  displayName String?
+  photoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

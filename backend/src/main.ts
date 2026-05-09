@@ -28,6 +28,7 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.WEB_ORIGIN ?? "http://localhost:3000",
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   });
 
   const preferred = parsePort();
