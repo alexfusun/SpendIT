@@ -44,6 +44,55 @@ type FormState = {
 
 type ModalMode = { kind: "create" } | { kind: "edit"; id: string };
 
+const MONTHLY_FACTOR: Record<string, number> = {
+  daily: 30,
+  weekly: 52 / 12,
+  monthly: 1,
+  bimonthly: 0.5,
+  quarterly: 1 / 3,
+  quadrimestral: 1 / 4,
+  semiannual: 1 / 6,
+  annually: 1 / 12,
+};
+
+function toMonthly(item: SiItemRow) {
+  return item.amount * (MONTHLY_FACTOR[item.paymentFrequency] ?? 1);
+}
+
+type KPIs = {
+  totalMonthly: number;
+  billCount: number;
+  billMonthly: number;
+  subCount: number;
+  subMonthly: number;
+  reminderCount: number;
+};
+
+function computeKPIs(items: SiItemRow[]): KPIs {
+  const now = new Date();
+  const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  let totalMonthly = 0;
+  let billCount = 0;
+  let billMonthly = 0;
+  let subCount = 0;
+  let subMonthly = 0;
+  let reminderCount = 0;
+
+  for (const item of items) {
+    const mo = toMonthly(item);
+    totalMonthly += mo;
+    if (item.type === "bill") { billCount++; billMonthly += mo; }
+    else if (item.type === "subscription") { subCount++; subMonthly += mo; }
+
+    const hasSoon = [item.notifyCancelDate, item.notifyRenewDate, item.notifyPayDate]
+      .some((d) => { if (!d) return false; const t = new Date(d); return t >= now && t <= in30; });
+    if (hasSoon) reminderCount++;
+  }
+
+  return { totalMonthly, billCount, billMonthly, subCount, subMonthly, reminderCount };
+}
+
 function formatMoney(n: number) {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -254,6 +303,42 @@ function DateTimeInput({
   );
 }
 
+// ── KPI cards ────────────────────────────────────────────────────────────────
+
+type KpiCardProps = {
+  label: string;
+  value: string;
+  sub: string;
+  accent: string;
+  loading?: boolean;
+};
+
+function KpiCard({ label, value, sub, accent, loading }: KpiCardProps) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200/70 shadow-sm px-5 py-4 flex flex-col gap-3 min-w-0">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          {label}
+        </span>
+        <span className={`w-2 h-2 rounded-full ${accent}`} />
+      </div>
+      {loading ? (
+        <div className="space-y-2">
+          <div className="h-7 w-24 bg-gray-100 rounded-lg animate-pulse" />
+          <div className="h-3.5 w-32 bg-gray-100 rounded animate-pulse" />
+        </div>
+      ) : (
+        <>
+          <p className="text-[26px] font-semibold text-gray-900 tabular-nums leading-none">
+            {value}
+          </p>
+          <p className="text-xs text-gray-400">{sub}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function ItemsApp() {
@@ -436,6 +521,43 @@ export function ItemsApp() {
             New Item
           </button>
         </header>
+
+        {/* KPI grid */}
+        {(() => {
+          const kpi = computeKPIs(items);
+          return (
+            <div className="px-8 pb-5 grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
+              <KpiCard
+                label="Monthly Spend"
+                value={formatMoney(kpi.totalMonthly)}
+                sub={`${items.length} ${items.length === 1 ? "item" : "items"} total`}
+                accent="bg-blue-500"
+                loading={loading}
+              />
+              <KpiCard
+                label="Bills"
+                value={String(kpi.billCount)}
+                sub={`${formatMoney(kpi.billMonthly)} / mo`}
+                accent="bg-amber-400"
+                loading={loading}
+              />
+              <KpiCard
+                label="Subscriptions"
+                value={String(kpi.subCount)}
+                sub={`${formatMoney(kpi.subMonthly)} / mo`}
+                accent="bg-violet-500"
+                loading={loading}
+              />
+              <KpiCard
+                label="Reminders"
+                value={String(kpi.reminderCount)}
+                sub="due in the next 30 days"
+                accent={kpi.reminderCount > 0 ? "bg-emerald-500" : "bg-gray-300"}
+                loading={loading}
+              />
+            </div>
+          );
+        })()}
 
         {/* Table card */}
         <div className="flex-1 px-8 pb-8 overflow-auto">
