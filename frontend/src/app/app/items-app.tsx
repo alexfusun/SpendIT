@@ -156,92 +156,6 @@ function IconPlus({ cls }: { cls?: string }) {
   );
 }
 
-// ── Sidebar ──────────────────────────────────────────────────────────────────
-
-function IconSignOut({ cls }: { cls?: string }) {
-  return (
-    <svg
-      className={cls}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-      <polyline points="16,17 21,12 16,7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
-  );
-}
-
-function Sidebar() {
-  const { user, signOut } = useAuth();
-
-  return (
-    <aside className="w-56 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-screen">
-      {/* Brand */}
-      <div className="px-5 pt-6 pb-5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center shadow-sm">
-            <span className="text-white text-sm font-bold leading-none">$</span>
-          </div>
-          <span className="text-[15px] font-semibold text-gray-900 tracking-tight">
-            SpendIT
-          </span>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 px-3 space-y-0.5">
-        <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-          Menu
-        </p>
-        <a
-          href="#"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium bg-blue-50 text-blue-600"
-        >
-          <IconHome cls="w-4 h-4 text-blue-500" />
-          Home
-        </a>
-      </nav>
-
-      {/* User + sign-out */}
-      <div className="px-4 py-4 border-t border-gray-100 space-y-3">
-        {user && (
-          <div className="flex items-center gap-2.5 min-w-0">
-            {user.photoURL ? (
-              <img
-                src={user.photoURL}
-                alt=""
-                className="w-7 h-7 rounded-full flex-shrink-0"
-              />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-medium text-gray-600">
-                  {(user.displayName ?? user.email ?? "?")[0].toUpperCase()}
-                </span>
-              </div>
-            )}
-            <span className="text-[12px] text-gray-600 truncate">
-              {user.displayName ?? user.email}
-            </span>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-        >
-          <IconSignOut cls="w-4 h-4" />
-          Sign out
-        </button>
-      </div>
-    </aside>
-  );
-}
-
 // ── Badges ───────────────────────────────────────────────────────────────────
 
 function TypeBadge({ type }: { type: string }) {
@@ -502,11 +416,8 @@ export function ItemsApp() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-[#F5F5F7] overflow-hidden">
-      <Sidebar />
-
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header */}
+    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* Header */}
         <header className="px-8 pt-8 pb-5 flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
@@ -653,7 +564,6 @@ export function ItemsApp() {
             )}
           </div>
         </div>
-      </div>
 
       {/* ── Create / Edit dialog ─────────────────────────────────────────────── */}
       <dialog

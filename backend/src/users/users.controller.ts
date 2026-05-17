@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Patch, Post, UseGuards } from "@nestjs/common";
 import { FirebaseAuthGuard } from "../auth/firebase-auth.guard";
 import { AuthUser, CurrentUser } from "../auth/current-user.decorator";
 import { UsersService } from "./users.service";
@@ -11,5 +11,18 @@ export class UsersController {
   @Post("me")
   syncMe(@CurrentUser() user: AuthUser) {
     return this.users.upsert(user);
+  }
+
+  @Get("me")
+  getMe(@CurrentUser() user: AuthUser) {
+    return this.users.findOne(user.uid);
+  }
+
+  @Patch("me")
+  updateMe(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { displayName?: string | null },
+  ) {
+    return this.users.updateOne(user.uid, body);
   }
 }
