@@ -100,7 +100,7 @@ export function ProfilePage() {
           <div className="bg-white rounded-2xl border border-gray-200/70 shadow-sm px-6 py-6">
             <div className="flex items-center gap-5">
               {photo ? (
-                <img src={photo} alt="" className="w-16 h-16 rounded-full flex-shrink-0 ring-2 ring-gray-100" />
+                <img src={photo} alt="" referrerPolicy="no-referrer" className="w-16 h-16 rounded-full flex-shrink-0 ring-2 ring-gray-100" />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 ring-2 ring-gray-100">
                   <span className="text-2xl font-semibold text-blue-600">{initials}</span>

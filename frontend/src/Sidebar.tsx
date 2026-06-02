@@ -90,7 +90,7 @@ export function Sidebar({
             className="w-full flex items-center gap-2.5 min-w-0 rounded-xl px-2 py-1.5 hover:bg-gray-100 transition-colors"
           >
             {user.photoURL ? (
-              <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full flex-shrink-0" />
+              <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-7 h-7 rounded-full flex-shrink-0" />
             ) : (
               <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
                 <span className="text-xs font-medium text-gray-600">
