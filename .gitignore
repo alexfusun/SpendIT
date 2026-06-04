@@ -11,3 +11,4 @@ coverage
 *.tsbuildinfo
 prisma/*.db
 prisma/*.db-journal
+.claude
