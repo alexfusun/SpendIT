@@ -1,12 +1,22 @@
 import { useAuth } from "./AuthContext";
 
-export type Page = "home" | "profile";
+export type Page = "home" | "board" | "profile";
 
 function IconHome({ cls }: { cls?: string }) {
   return (
     <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
       <polyline points="9,22 9,12 15,12 15,22" />
+    </svg>
+  );
+}
+
+function IconBoard({ cls }: { cls?: string }) {
+  return (
+    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="18" rx="1" />
+      <rect x="14" y="3" width="7" height="11" rx="1" />
+      <rect x="14" y="18" width="7" height="3" rx="1" />
     </svg>
   );
 }
@@ -25,6 +35,11 @@ const NAV: { page: Page; label: string; icon: (active: boolean) => React.ReactNo
     page: "home",
     label: "Home",
     icon: (active) => <IconHome cls={`w-4 h-4 ${active ? "text-blue-500" : "text-gray-400"}`} />,
+  },
+  {
+    page: "board",
+    label: "Board",
+    icon: (active) => <IconBoard cls={`w-4 h-4 ${active ? "text-blue-500" : "text-gray-400"}`} />,
   },
   {
     page: "profile",

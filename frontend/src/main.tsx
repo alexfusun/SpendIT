@@ -4,6 +4,7 @@ import "./index.css";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { LoginPage } from "./LoginPage";
 import { ProfilePage } from "./ProfilePage";
+import { BoardPage } from "./BoardPage";
 import { Sidebar, Page } from "./Sidebar";
 import { ItemsApp } from "./app/app/items-app";
 
@@ -13,7 +14,13 @@ function AppShell() {
   return (
     <div className="flex h-screen bg-[#F5F5F7] overflow-hidden">
       <Sidebar currentPage={page} onNavigate={setPage} />
-      {page === "home" ? <ItemsApp /> : <ProfilePage />}
+      {page === "home" ? (
+        <ItemsApp />
+      ) : page === "board" ? (
+        <BoardPage />
+      ) : (
+        <ProfilePage />
+      )}
     </div>
   );
 }

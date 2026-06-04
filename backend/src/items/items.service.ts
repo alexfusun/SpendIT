@@ -30,6 +30,15 @@ function parseOptionalDate(
   return d;
 }
 
+function parseRequiredDate(value: string, field: string): Date {
+  if (!value) throw new BadRequestException(`${field} is required`);
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) {
+    throw new BadRequestException(`Invalid date for ${field}: ${value}`);
+  }
+  return d;
+}
+
 @Injectable()
 export class ItemsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -61,6 +70,8 @@ export class ItemsService {
       throw new BadRequestException("amount must be a non-negative number");
     }
 
+    const billingDate = parseRequiredDate(dto.billingDate, "billingDate");
+
     return this.prisma.siItem.create({
       data: {
         userId,
@@ -69,6 +80,8 @@ export class ItemsService {
           dto.subType === undefined || dto.subType === "" ? null : dto.subType,
         paymentFrequency: dto.paymentFrequency as SiPaymentFrequency,
         amount,
+        billingDate,
+        paid: type === SiItemType.bill ? false : null,
         notifyCancel: Boolean(dto.notifyCancel),
         notifyRenew: Boolean(dto.notifyRenew),
         notifyPay: Boolean(dto.notifyPay),
@@ -111,6 +124,9 @@ export class ItemsService {
       data.amount = amount;
     }
     if ("subType" in dto) data.subType = dto.subType === "" ? null : dto.subType;
+    if ("billingDate" in dto && dto.billingDate)
+      data.billingDate = parseRequiredDate(dto.billingDate, "billingDate");
+    if ("paid" in dto) data.paid = dto.paid ?? null;
     if (dto.notifyCancel !== undefined) data.notifyCancel = Boolean(dto.notifyCancel);
     if (dto.notifyRenew !== undefined) data.notifyRenew = Boolean(dto.notifyRenew);
     if (dto.notifyPay !== undefined) data.notifyPay = Boolean(dto.notifyPay);

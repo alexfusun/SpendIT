@@ -4,6 +4,7 @@ export type CreateItemDto = {
   subType?: string | null;
   paymentFrequency: string;
   amount: number;
+  billingDate: string;
   notifyCancel: boolean;
   notifyRenew: boolean;
   notifyPay: boolean;

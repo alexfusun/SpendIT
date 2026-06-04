@@ -33,6 +33,8 @@ model SiItem {
   subType          String?
   paymentFrequency SiPaymentFrequency
   amount           Float              @db.Real
+  billingDate      DateTime           @default(now())
+  paid             Boolean?
   notifyCancel     Boolean
   notifyRenew      Boolean
   notifyPay        Boolean

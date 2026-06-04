@@ -21,6 +21,8 @@ export type SiItemRow = {
   subType: string | null;
   paymentFrequency: string;
   amount: number;
+  billingDate: string;
+  paid: boolean | null;
   notifyCancel: boolean;
   notifyRenew: boolean;
   notifyPay: boolean;
@@ -34,6 +36,8 @@ type FormState = {
   subType: string;
   paymentFrequency: (typeof PAYMENT_FREQUENCIES)[number];
   amount: string;
+  billingDate: string;
+  paid: boolean;
   notifyCancel: boolean;
   notifyRenew: boolean;
   notifyPay: boolean;
@@ -107,6 +111,8 @@ function initialForm(): FormState {
     subType: "",
     paymentFrequency: "monthly",
     amount: "",
+    billingDate: "",
+    paid: false,
     notifyCancel: false,
     notifyRenew: false,
     notifyPay: false,
@@ -122,6 +128,8 @@ function rowToForm(row: SiItemRow): FormState {
     subType: row.subType ?? "",
     paymentFrequency: row.paymentFrequency as FormState["paymentFrequency"],
     amount: String(row.amount),
+    billingDate: row.billingDate ? row.billingDate.slice(0, 16) : "",
+    paid: row.paid ?? false,
     notifyCancel: row.notifyCancel,
     notifyRenew: row.notifyRenew,
     notifyPay: row.notifyPay,
@@ -424,11 +432,18 @@ export function ItemsApp() {
       return;
     }
 
+    if (!form.billingDate) {
+      setSubmitError("Billing date is required.");
+      return;
+    }
+
     const payload = {
       type: form.type,
       subType: form.subType.trim() || null,
       paymentFrequency: form.paymentFrequency,
       amount,
+      billingDate: form.billingDate,
+      paid: form.type === "bill" ? form.paid : undefined,
       notifyCancel: form.notifyCancel,
       notifyRenew: form.notifyRenew,
       notifyPay: form.notifyPay,
@@ -612,6 +627,12 @@ export function ItemsApp() {
                           Amount
                         </th>
                         <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                          Billing Date
+                        </th>
+                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                          Paid
+                        </th>
+                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                           Notifications
                         </th>
                         <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-right">
@@ -644,6 +665,32 @@ export function ItemsApp() {
                             <span className="text-sm font-semibold text-gray-900 tabular-nums">
                               {formatMoney(row.amount)}
                             </span>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span className="text-sm text-gray-600 tabular-nums whitespace-nowrap">
+                              {row.billingDate
+                                ? new Date(row.billingDate).toLocaleDateString(undefined, {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  })
+                                : <span className="text-gray-300">—</span>}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            {row.type === "bill" ? (
+                              row.paid ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                                  Paid
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200">
+                                  Pending
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-gray-300 text-xs select-none">—</span>
+                            )}
                           </td>
                           <td className="px-5 py-3.5">
                             <NotifyPills
@@ -787,6 +834,37 @@ export function ItemsApp() {
                 />
               </div>
             </div>
+
+            {/* Billing date */}
+            <div>
+              <label className={labelCls}>
+                Billing date <span className="text-red-400">*</span>
+              </label>
+              <DateTimeInput
+                value={form.billingDate}
+                onChange={(v) => setForm((f) => ({ ...f, billingDate: v }))}
+              />
+            </div>
+
+            {/* Paid (bills only) */}
+            {form.type === "bill" && (
+              <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-3">
+                <span className="text-sm font-medium text-gray-800">Paid</span>
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, paid: !f.paid }))}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                    form.paid ? "bg-emerald-500" : "bg-gray-200"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                      form.paid ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
 
             {/* Notifications */}
             <div>
