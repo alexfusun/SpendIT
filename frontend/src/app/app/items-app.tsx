@@ -357,6 +357,19 @@ export function ItemsApp() {
   const [items, setItems] = useState<SiItemRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "bill" | "subscription">("all");
+  const [filterPaid, setFilterPaid] = useState<"all" | "paid" | "pending">("all");
+  const [showFilters, setShowFilters] = useState(false);
+  type SortCol = "amount" | "billingDate" | "paid";
+  const [sortCol, setSortCol] = useState<SortCol | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  function toggleSort(col: SortCol) {
+    if (sortCol !== col) { setSortCol(col); setSortDir("asc"); }
+    else if (sortDir === "asc") setSortDir("desc");
+    else setSortCol(null);
+  }
 
   const [form, setForm] = useState<FormState>(initialForm());
   const [modalMode, setModalMode] = useState<ModalMode>({ kind: "create" });
@@ -574,6 +587,116 @@ export function ItemsApp() {
           );
         })()}
 
+        {/* Search + filter bar */}
+        <div className="px-8 pb-4 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            {/* Search input */}
+            <div className="relative">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search by name…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-48 pl-9 pr-3 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+            </div>
+
+            {/* Filter toggle button */}
+            {(() => {
+              const hasActiveFilter = filterType !== "all" || filterPaid !== "all";
+              return (
+                <button
+                  type="button"
+                  onClick={() => setShowFilters((v) => !v)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                    hasActiveFilter
+                      ? "border-blue-300 bg-blue-50 text-blue-600"
+                      : showFilters
+                        ? "border-gray-300 bg-gray-100 text-gray-700"
+                        : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="4" y1="6" x2="20" y2="6" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                    <line x1="11" y1="18" x2="13" y2="18" />
+                  </svg>
+                  Filter
+                  {hasActiveFilter && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                  )}
+                </button>
+              );
+            })()}
+          </div>
+
+          {/* Expanded filter panels */}
+          {showFilters && (
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {/* Type filter */}
+              <div className="flex items-center bg-gray-100 rounded-xl p-0.5 gap-0.5">
+                {(["all", "bill", "subscription"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setFilterType(v)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      filterType === v
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {v === "all" ? "All types" : v === "bill" ? "Bills" : "Subscriptions"}
+                  </button>
+                ))}
+              </div>
+
+              {/* Paid filter */}
+              {filterType !== "subscription" && (
+                <div className="flex items-center bg-gray-100 rounded-xl p-0.5 gap-0.5">
+                  {(["all", "pending", "paid"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setFilterPaid(v)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        filterPaid === v
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      {v === "all" ? "Any status" : v === "paid" ? "Paid" : "Pending"}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Clear filters */}
+              {(filterType !== "all" || filterPaid !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => { setFilterType("all"); setFilterPaid("all"); }}
+                  className="text-xs text-gray-400 hover:text-red-500 transition-colors px-1"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Table card */}
         <div className="flex-1 px-8 pb-8 overflow-auto">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200/70 overflow-hidden min-h-[200px]">
@@ -608,7 +731,47 @@ export function ItemsApp() {
                   Create your first item →
                 </button>
               </div>
-            ) : (
+            ) : (() => {
+              const q = search.trim().toLowerCase();
+              const filteredItems = items.filter((it) => {
+                if (q && !(it.subType ?? "").toLowerCase().includes(q)) return false;
+                if (filterType !== "all" && it.type !== filterType) return false;
+                if (filterPaid !== "all") {
+                  if (it.paid === null) return false;
+                  if (filterPaid === "paid" && !it.paid) return false;
+                  if (filterPaid === "pending" && it.paid) return false;
+                }
+                return true;
+              });
+              const displayItems = sortCol
+                ? [...filteredItems].sort((a, b) => {
+                    let cmp = 0;
+                    if (sortCol === "amount") {
+                      cmp = a.amount - b.amount;
+                    } else if (sortCol === "billingDate") {
+                      cmp = new Date(a.billingDate).getTime() - new Date(b.billingDate).getTime();
+                    } else if (sortCol === "paid") {
+                      const rank = (v: boolean | null) => v === null ? -1 : v ? 1 : 0;
+                      cmp = rank(a.paid) - rank(b.paid);
+                    }
+                    return sortDir === "asc" ? cmp : -cmp;
+                  })
+                : filteredItems;
+              return filteredItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 gap-1">
+                  <p className="text-sm font-medium text-gray-600">No results</p>
+                  <p className="text-xs text-gray-400">
+                    No items match &ldquo;{search.trim()}&rdquo;
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="mt-3 text-sm font-medium text-blue-500 hover:text-blue-600 transition-colors"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              ) : (
               <>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[600px] text-left">
@@ -618,20 +781,30 @@ export function ItemsApp() {
                           Type
                         </th>
                         <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                          Subtype
+                          Name
                         </th>
                         <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                           Frequency
                         </th>
-                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-right">
-                          Amount
-                        </th>
-                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                          Billing Date
-                        </th>
-                        <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                          Paid
-                        </th>
+                        {(["amount", "billingDate", "paid"] as const).map((col) => {
+                          const active = sortCol === col;
+                          const label = col === "amount" ? "Amount" : col === "billingDate" ? "Billing Date" : "Paid";
+                          const isRight = col === "amount";
+                          return (
+                            <th
+                              key={col}
+                              onClick={() => toggleSort(col)}
+                              className={`px-5 py-3 text-[11px] font-semibold uppercase tracking-wider cursor-pointer select-none transition-colors ${active ? "text-blue-500" : "text-gray-500 hover:text-gray-700"} ${isRight ? "text-right" : ""}`}
+                            >
+                              <span className={`inline-flex items-center gap-1 ${isRight ? "justify-end w-full" : ""}`}>
+                                {label}
+                                <span className={`text-[10px] ${active ? "opacity-100" : "opacity-0 group-hover:opacity-40"}`}>
+                                  {active ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
+                                </span>
+                              </span>
+                            </th>
+                          );
+                        })}
                         <th className="px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                           Notifications
                         </th>
@@ -641,7 +814,7 @@ export function ItemsApp() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {items.map((row) => (
+                      {displayItems.map((row) => (
                         <tr
                           key={row.id}
                           className="hover:bg-blue-50/30 transition-colors group"
@@ -726,11 +899,14 @@ export function ItemsApp() {
                 </div>
                 <div className="px-5 py-3 border-t border-gray-100">
                   <span className="text-xs text-gray-400">
-                    {items.length} {items.length === 1 ? "item" : "items"} total
+                    {filteredItems.length === items.length
+                      ? `${items.length} ${items.length === 1 ? "item" : "items"} total`
+                      : `${filteredItems.length} of ${items.length} items`}
                   </span>
                 </div>
               </>
-            )}
+              );
+            })()}
           </div>
         </div>
 
@@ -773,10 +949,10 @@ export function ItemsApp() {
               </select>
             </div>
 
-            {/* Subtype */}
+            {/* Name */}
             <div>
               <label className={labelCls}>
-                Subtype{" "}
+                Name{" "}
                 <span className="font-normal text-gray-400">(optional)</span>
               </label>
               <input
